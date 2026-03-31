@@ -22,3 +22,18 @@ resources:
   requests:
     cpu: 50m
     memory: 64Mi
+
+# Vault Agent Injector 設定
+vault:
+  enabled: true
+  role: myapp
+  secretPath: secret/data/myapp/config
+  # Vault Agent 會把 secret 寫成這個模板格式
+  # 產出 JSON 檔案，讓前端可以載入
+  template: |
+    {
+      "API_KEY": "{{ with secret "secret/data/myapp/config" }}{{ .Data.data.API_KEY }}{{ end }}",
+      "APP_ENV": "{{ with secret "secret/data/myapp/config" }}{{ .Data.data.APP_ENV }}{{ end }}",
+      "DB_PASSWORD": "{{ with secret "secret/data/myapp/config" }}{{ .Data.data.DB_PASSWORD }}{{ end }}",
+      "VAULT_DEMO": "{{ with secret "secret/data/myapp/config" }}{{ .Data.data.VAULT_DEMO }}{{ end }}"
+    }

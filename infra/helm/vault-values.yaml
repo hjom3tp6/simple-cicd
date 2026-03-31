@@ -1,0 +1,38 @@
+# Vault Helm Chart values for local dev
+server:
+  dev:
+    enabled: true
+    devRootToken: "root"
+  service:
+    type: NodePort
+    nodePort: 30200
+  image:
+    repository: hashicorp/vault
+    tag: latest
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 50m
+    limits:
+      memory: 256Mi
+      cpu: 250m
+
+injector:
+  enabled: true
+  image:
+    repository: hashicorp/vault-k8s
+    tag: latest
+  agentImage:
+    repository: hashicorp/vault
+    tag: latest
+  affinity: {}
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 50m
+    limits:
+      memory: 256Mi
+      cpu: 250m
+
+ui:
+  enabled: true
