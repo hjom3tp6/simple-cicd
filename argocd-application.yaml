@@ -7,7 +7,7 @@ spec:
   project: default
 
   source:
-    repoURL: https://github.com/YOUR_USERNAME/simple-cicd
+    repoURL: https://github.com/hjom3tp6/simple-cicd
     targetRevision: main
     path: infra/helm/myapp
     helm:

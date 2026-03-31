@@ -1,6 +1,6 @@
 # CI 會自動更新 image.tag 這個值
 image:
-  repository: ghcr.io/YOUR_USERNAME/simple-cicd/myapp
+  repository: ghcr.io/hjom3tp6/simple-cicd/myapp
   tag: "latest"
   pullPolicy: IfNotPresent
 
