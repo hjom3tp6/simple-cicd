@@ -35,6 +35,16 @@ function maskSecret(value: string): string {
 
 <template>
   <div class="container">
+    <div class="marquee-wrapper">
+      <div class="marquee-track">
+        <span>Hello Mark ^^</span>
+        <span>Hello Mark ^^</span>
+        <span>Hello Mark ^^</span>
+        <span>Hello Mark ^^</span>
+        <span>Hello Mark ^^</span>
+      </div>
+    </div>
+
     <h1>🚀 GitOps Practice App</h1>
     <p class="subtitle">Vue 3 + Vite + Docker + Helm + Argo CD + Vault</p>
 
@@ -193,5 +203,28 @@ h1 {
   color: #666;
   font-size: 0.85rem;
   margin-top: 2rem;
+}
+
+.marquee-wrapper {
+  overflow: hidden;
+  background: linear-gradient(90deg, #1a1a2e, #16213e, #1a1a2e);
+  border-radius: 8px;
+  padding: 0.6rem 0;
+  margin-bottom: 1.5rem;
+}
+
+.marquee-track {
+  display: inline-flex;
+  gap: 4rem;
+  white-space: nowrap;
+  animation: marquee 8s linear infinite;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #a78bfa;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 </style>
