@@ -1,10 +1,18 @@
-name: CI - Build and Deploy
+name: CI - Build and Push
 
 on:
   push:
     branches: [main]
     paths:
       - 'app/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/**'
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io
@@ -14,7 +22,7 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       packages: write
 
     steps:
@@ -43,21 +51,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build and Push Docker image
         uses: docker/build-push-action@v5
         with:
           context: ./app
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-
-      - name: Update image tag in Helm values
-        run: |
-          sed -i "s|tag:.*|tag: \"${{ github.sha }}\"|" \
-            infra/helm/myapp/values.yaml
-          git config user.email "github-actions@github.com"
-          git config user.name "GitHub Actions"
-          git add infra/helm/myapp/values.yaml
-          git commit -m "chore: update image tag to ${{ github.sha }}"
-          git push
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
