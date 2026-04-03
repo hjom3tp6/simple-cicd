@@ -48,11 +48,6 @@ function maskSecret(value: string): string {
     <h1>🚀 GitOps Practice App</h1>
     <p class="subtitle">Vue 3 + Vite + Docker + Helm + Argo CD + Vault</p>
 
-    <div class="card">
-      <button @click="count++">Count is {{ count }}</button>
-      <p>Edit <code>src/components/HelloWorld.vue</code> to test HMR</p>
-    </div>
-
     <div class="info">
       <h2>Tech Stack</h2>
       <ul>
