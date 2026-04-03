@@ -48,7 +48,7 @@ function maskSecret(value: string): string {
     <p class="subtitle">Vue 3 + Vite + Docker + Helm + Argo CD + Vault</p>
 
     <div class="info">
-      <h2>Tech Stack</h2>
+      <h2>🛠️ Tech Stack</h2>
       <ul>
         <li>⚡ Vite — 極速打包工具</li>
         <li>💚 Vue 3 — Composition API</li>
