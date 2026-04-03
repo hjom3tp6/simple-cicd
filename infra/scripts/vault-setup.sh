@@ -5,8 +5,7 @@ set -e
 
 VAULT_POD="vault-0"
 VAULT_NS="vault"
-APP_NS="myapp"
-APP_SA="myapp"
+APP_SA="myapp-dev,myapp-prd"
 
 echo "=== 1. 存入示範 Secret ==="
 kubectl exec $VAULT_POD -n $VAULT_NS -- vault kv put secret/myapp/config \
@@ -42,7 +41,7 @@ echo ""
 echo "=== 6. 建立 Kubernetes Auth Role ==="
 kubectl exec $VAULT_POD -n $VAULT_NS -- vault write auth/kubernetes/role/myapp \
   bound_service_account_names=$APP_SA \
-  bound_service_account_namespaces=$APP_NS \
+  bound_service_account_namespaces="dev,prd" \
   policies=myapp-policy \
   ttl=24h
 
@@ -51,4 +50,4 @@ echo "=== ✅ Vault 設定完成！ ==="
 echo "  - Secret 路徑: secret/myapp/config"
 echo "  - Policy: myapp-policy"
 echo "  - K8s Auth Role: myapp"
-echo "  - 綁定 SA: $APP_SA @ $APP_NS"
+echo "  - 綁定 SA: $APP_SA @ dev, prd"
