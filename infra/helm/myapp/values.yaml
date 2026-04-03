@@ -1,7 +1,6 @@
-# CI 會自動更新 image.tag 這個值
+# 共用預設值（環境相關的 image.tag 和 service.nodePort 在 values-dev/prd.yaml）
 image:
   repository: ghcr.io/hjom3tp6/simple-cicd/myapp
-  tag: "6939e6b319185b594433d49588dec85cd4430f47"
   pullPolicy: IfNotPresent
 
 replicaCount: 1
@@ -9,7 +8,6 @@ replicaCount: 1
 service:
   type: NodePort
   port: 80
-  nodePort: 30080
 
 ingress:
   enabled: false

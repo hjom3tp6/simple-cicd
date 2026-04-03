@@ -1,0 +1,6 @@
+# Prd 環境覆蓋值（release.yml 自動更新 image.tag）
+image:
+  tag: "latest"
+
+service:
+  nodePort: 30081
