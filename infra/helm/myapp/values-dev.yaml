@@ -1,5 +1,5 @@
 # Dev 環境覆蓋值（cd-dev.yml 自動更新 image.tag）
 image:
-  tag: "fba15c7563cd2026d4f6e47f5e88a6e67852b162"
+  tag: "4a5d4234f280318d2b7172ce1bcbb9777ea567f8"
 service:
   nodePort: 30080
