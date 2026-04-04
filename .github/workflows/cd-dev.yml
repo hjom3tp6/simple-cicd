@@ -69,4 +69,5 @@ jobs:
           git config user.name "GitHub Actions"
           git add infra/helm/myapp/values-dev.yaml
           git commit -m "chore(dev): deploy ${{ github.sha }}"
+          git pull --rebase origin main
           git push
