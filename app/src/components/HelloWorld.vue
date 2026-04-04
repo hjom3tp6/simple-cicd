@@ -45,7 +45,6 @@ function maskSecret(value: string): string {
     </div>
 
     <h1>🚀 GitOps Practice App</h1>
-    <p class="subtitle">Vue 3 + Vite + Docker + Helm + Argo CD + Vault</p>
 
     <div class="info">
       <h2>🛠️ Tech Stack</h2>
