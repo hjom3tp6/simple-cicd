@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.0](https://github.com/hjom3tp6/simple-cicd/compare/app-v1.0.0...app-v1.1.0) (2026-04-04)
+
+
+### Features
+
+* remove subtitle line from home page ([f6c2bb5](https://github.com/hjom3tp6/simple-cicd/commit/f6c2bb5cc2dd7038021056e9a2d7cc99440b6c05))
+* remove subtitle line from home page ([9c9839e](https://github.com/hjom3tp6/simple-cicd/commit/9c9839eddfef95c5a77fe9cde9ec6271e277a7e0))
+* replace ^^ with 👋 emoji in Hello Mark marquee ([31dba5c](https://github.com/hjom3tp6/simple-cicd/commit/31dba5cd64cf84cb647102ed0dfb836bd8c3a66f))
+* replace ^^ with 👋 emoji in Hello Mark marquee ([b9b69f5](https://github.com/hjom3tp6/simple-cicd/commit/b9b69f5ab39fddfc7f419265439cc8d80ce88976))
+
 ## 1.0.0 (2026-04-04)
 
 
