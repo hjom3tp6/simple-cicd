@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0](https://github.com/hjom3tp6/simple-cicd/compare/app-v1.2.0...app-v1.3.0) (2026-04-04)
+
+
+### Features
+
+* 封面版本號加上底線 ([c68dd8b](https://github.com/hjom3tp6/simple-cicd/commit/c68dd8bde7edf31d819bd38f984039b615a31bf2))
+* 封面版本號加上底線樣式 ([1a6e89d](https://github.com/hjom3tp6/simple-cicd/commit/1a6e89db1fb2f12d5b30dffb9334df0fbfe0123c))
+
 ## [1.2.0](https://github.com/hjom3tp6/simple-cicd/compare/app-v1.1.0...app-v1.2.0) (2026-04-04)
 
 
