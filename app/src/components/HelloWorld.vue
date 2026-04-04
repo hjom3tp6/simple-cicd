@@ -90,7 +90,7 @@ function maskSecret(value: string): string {
       </div>
     </div>
 
-    <p class="build-info">Version: v{{ appVersion }} | Build time: {{ buildTime }}</p>
+    <p class="build-info">Version: <span class="version-number">v{{ appVersion }}</span> | Build time: {{ buildTime }}</p>
   </div>
 </template>
 
@@ -197,6 +197,10 @@ h1 {
   color: #666;
   font-size: 0.85rem;
   margin-top: 2rem;
+}
+
+.version-number {
+  text-decoration: underline;
 }
 
 .marquee-wrapper {
