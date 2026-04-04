@@ -36,11 +36,11 @@ function maskSecret(value: string): string {
   <div class="container">
     <div class="marquee-wrapper">
       <div class="marquee-track">
-        <span>Hello Mark ^^</span>
-        <span>Hello Mark ^^</span>
-        <span>Hello Mark ^^</span>
-        <span>Hello Mark ^^</span>
-        <span>Hello Mark ^^</span>
+        <span>Hello Mark 👋</span>
+        <span>Hello Mark 👋</span>
+        <span>Hello Mark 👋</span>
+        <span>Hello Mark 👋</span>
+        <span>Hello Mark 👋</span>
       </div>
     </div>
 
