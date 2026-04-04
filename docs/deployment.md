@@ -1,13 +1,45 @@
 # 部署指南
 
-本文件記錄將 simple-cicd 部署到本機 OrbStack Kubernetes 的完整步驟，以及完整 GitOps 流程說明。
+本文件記錄將 simple-cicd 部署到本機 OrbStack Kubernetes 的完整步驟，以及 Dev/Prd 雙環境 GitOps 流程說明。
+
+## 架構概覽
+
+```
+開發者 (Feature Branch)
+    │  git push → PR → CI validate
+    ▼
+Lead merge PR → main
+    │
+    ├─► cd-dev.yml ──► GHCR image (SHA tag) ──► values-dev.yaml ──► ArgoCD ──► dev namespace
+    │                                                                              http://localhost:30080
+    │
+    └─► release-please.yml ──► Release PR（自動維護版本號 + CHANGELOG）
+                                    │ Lead merge
+                                    ▼
+                               release.yml
+                                    │  crane tag（SHA → app-v*.*.*）
+                                    ▼
+                               values-prd.yaml ──► ArgoCD ──► prd namespace
+                                                               http://localhost:30081
+```
+
+**兩個 ArgoCD Application：**
+
+| Application | Namespace | Values Files | 觸發方式 |
+|---|---|---|---|
+| myapp-dev | dev | values.yaml + values-dev.yaml | cd-dev.yml 更新 image tag（SHA） |
+| myapp-prd | prd | values.yaml + values-prd.yaml | release.yml 更新 image tag（app-v*.*.*） |
+
+---
 
 ## 前置條件
 
 - [OrbStack](https://orbstack.dev/) 已安裝並啟用 Kubernetes
 - `kubectl` 可用（OrbStack 安裝後自動設定）
 - `helm` 已安裝：`brew install helm`
-- Docker 可用（OrbStack 提供）
+- GitHub CLI：`brew install gh`
+
+---
 
 ## 一次性環境設定
 
@@ -17,11 +49,15 @@
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 kubectl rollout status deployment/argocd-server -n argocd --timeout=120s
+
+# 取得初始管理員密碼
+kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath="{.data.password}" | base64 -d && echo
 ```
 
-### 2. 設定 GHCR 私有 Repo 存取
+### 2. 設定 Argo CD 存取私有 Repo
 
-Argo CD 需要 GitHub token（需要 `repo` 權限）才能從私有 repo 讀取 Helm chart：
+Argo CD 需要 GitHub token（`repo` 權限）才能從私有 repo 讀取 Helm chart：
 
 ```bash
 kubectl create secret generic argocd-repo-hjom3tp6 \
@@ -35,150 +71,219 @@ kubectl annotate secret argocd-repo-hjom3tp6 -n argocd "managed-by=argocd.argopr
 kubectl label secret argocd-repo-hjom3tp6 -n argocd "argocd.argoproj.io/secret-type=repository"
 ```
 
-K8s 需要 token（需要 `read:packages` 權限）才能從 GHCR 拉 image：
+### 3. 建立 GHCR 拉取 Secret（dev + prd 各一份）
+
+Kubernetes 需要 token（`read:packages` 權限）才能從私有 GHCR 拉取 image：
 
 ```bash
-kubectl create namespace myapp
-
+# Dev namespace
+kubectl create namespace dev
 kubectl create secret docker-registry ghcr-secret \
   --docker-server=ghcr.io \
   --docker-username=hjom3tp6 \
   --docker-password=<GITHUB_TOKEN> \
-  -n myapp
+  -n dev
+
+# Prd namespace
+kubectl create namespace prd
+kubectl create secret docker-registry ghcr-secret \
+  --docker-server=ghcr.io \
+  --docker-username=hjom3tp6 \
+  --docker-password=<GITHUB_TOKEN> \
+  -n prd
 ```
 
-### 3. 部署 Argo CD Application
+> `ghcr-secret` 這個名字是 `infra/helm/myapp/values.yaml` 中 `imagePullSecrets` 指定的，不可更改。
+
+### 4. 部署 Argo CD Application
 
 ```bash
-kubectl apply -f argocd-application.yaml
+kubectl apply -f argocd-app-dev.yaml
+kubectl apply -f argocd-app-prd.yaml
 ```
 
-Argo CD 會自動從 GitHub 拉取 `infra/helm/myapp/` 並部署。等待同步完成：
+Argo CD 自動從 GitHub 拉取 Helm chart 並部署：
 
 ```bash
-kubectl get application myapp -n argocd
-# 等到 SYNC STATUS = Synced, HEALTH STATUS = Healthy
+kubectl get application -n argocd
+# 等到兩個 SYNC STATUS = Synced, HEALTH STATUS = Healthy
 ```
 
-### 4. 設定 ServiceAccount 的 imagePullSecrets
+### 5. GitHub Actions 一次性權限設定
 
-Argo CD 部署後，需要手動設定 SA 的 pull secret（Helm chart 目前未內建）：
+**開啟 Repo 的 Actions 讀寫權限：**
+
+前往 **Settings → Actions → General → Workflow permissions**，選擇 **Read and write permissions**。
+
+**授權 GHCR Package 存取（若 package 曾用 PAT 手動推過）：**
+
+前往：
+```
+https://github.com/users/hjom3tp6/packages/container/simple-cicd%2Fmyapp/settings
+```
+
+在 **Manage Actions access** → **Add Repository** → 選 `simple-cicd` → 設為 **Write**。
+
+---
+
+## 日常開發流程（Dev 部署）
+
+```
+feat/xxx branch
+    │
+    │ git push + gh pr create
+    ▼
+PR 觸發 ci.yml（validate）
+    │  - npm ci
+    │  - vue-tsc --noEmit（型別檢查）
+    │  - npm run build（Vite 打包）
+    │  ✓ 不 build Docker，不 push image
+    ▼
+Lead review & merge to main
+    ▼
+cd-dev.yml 觸發（paths: app/**）
+    │  1. npm ci + npm run build
+    │  2. docker buildx build --platform linux/amd64,linux/arm64
+    │  3. push → ghcr.io/hjom3tp6/simple-cicd/myapp:<SHA>
+    │  4. yq 更新 infra/helm/myapp/values-dev.yaml image.tag = <SHA>
+    │  5. git commit "chore(dev): deploy <SHA>" + git push
+    ▼
+Argo CD 偵測到 values-dev.yaml 變更
+    ▼
+helm upgrade myapp-dev（dev namespace）
+    ▼
+http://localhost:30080 顯示新版本（約 2-3 分鐘）
+```
+
+**常用指令：**
 
 ```bash
-kubectl patch serviceaccount myapp -n myapp \
-  -p '{"imagePullSecrets": [{"name": "ghcr-secret"}]}'
-kubectl rollout restart deployment/myapp -n myapp
+# 建立 feature branch
+git checkout -b feat/xxx main
+
+# 推上去開 PR
+git push -u origin feat/xxx
+gh pr create --title "feat: ..." --body "..."
+
+# 查看 CI 狀態
+gh pr checks <PR號碼> --watch
+
+# 查看 dev 部署狀態
+kubectl get pods -n dev
+kubectl get application myapp-dev -n argocd
 ```
+
+---
+
+## 上版流程（Prd 部署）
+
+```
+每次 merge to main
+    ▼
+release-please.yml 自動建立/更新 Release PR
+    │  - 根據 Conventional Commits 計算版本號
+    │  - 更新 app/package.json 版本
+    │  - 更新 CHANGELOG.md
+    │  - PR title: "chore(main): release app x.y.z"
+    ▼
+Lead 決定上版時機 → merge Release PR
+    ▼
+Release Please 建立 tag: app-v<x.y.z>
+    ▼
+release.yml 觸發（trigger: tag app-v*.*.*）
+    │  1. 讀取 values-dev.yaml 的 image.tag（dev 正在跑的 SHA）
+    │  2. crane tag <SHA> → app-v<x.y.z>（server-side re-tag，不需 docker pull）
+    │  3. crane tag <SHA> → latest
+    │  4. yq 更新 infra/helm/myapp/values-prd.yaml image.tag = app-v<x.y.z>
+    │  5. git commit "chore(prd): release app-v<x.y.z>" + git push origin main
+    ▼
+Argo CD 偵測到 values-prd.yaml 變更
+    ▼
+helm upgrade myapp-prd（prd namespace）
+    ▼
+http://localhost:30081 顯示新版本（約 2-3 分鐘）
+```
+
+**版本號規則（Conventional Commits）：**
+
+| Commit 前綴 | 版本變動 | 範例 |
+|---|---|---|
+| `fix:` | patch | v1.0.0 → v1.0.1 |
+| `feat:` | minor | v1.0.0 → v1.1.0 |
+| `feat!:` 或 `BREAKING CHANGE` | major | v1.0.0 → v2.0.0 |
+
+**手動重新觸發 release（緊急情況）：**
+
+```bash
+gh workflow run release.yml --ref main -f tag=app-v1.0.0
+```
+
+---
 
 ## 確認部署狀態
 
 ```bash
 # Pod 狀態
-kubectl get pods -n myapp
+kubectl get pods -n dev
+kubectl get pods -n prd
 
-# Service / Port
-kubectl get svc -n myapp
+# Service / NodePort
+kubectl get svc -n dev
+kubectl get svc -n prd
 
 # Argo CD 同步狀態
-kubectl get application myapp -n argocd -o wide
+kubectl get application -n argocd
+
+# 強制立即同步（不等輪詢）
+kubectl annotate application myapp-dev -n argocd argocd.argoproj.io/refresh=hard --overwrite
+kubectl annotate application myapp-prd -n argocd argocd.argoproj.io/refresh=hard --overwrite
+
+# 查看 pod logs
+kubectl logs -n dev -l app=myapp-dev
 ```
 
-App 跑起來後可透過 NodePort 存取：**http://localhost:30080**
+**存取地址：**
+- Dev：http://localhost:30080
+- Prd：http://localhost:30081
 
-## Tailscale 網路存取
+---
 
-OrbStack 的 NodePort 預設只綁定 `localhost`，同一 Tailscale VPN 的裝置無法直連。用 `socat` 轉發流量：
+## Vault Secret 注入（可選）
+
+本專案整合 HashiCorp Vault，透過 Agent Injector 將 secret 注入到 `/vault/secrets/config.json`：
 
 ```bash
-# 安裝 socat（只需一次）
+# 安裝 Vault
+helm repo add hashicorp https://helm.releases.hashicorp.com
+helm install vault hashicorp/vault -n vault --create-namespace -f infra/helm/vault-values.yaml
+
+# 初始化 secrets 與 K8s auth
+bash infra/scripts/vault-setup.sh
+```
+
+前端透過 nginx `location = /api/config` 回傳該檔案，`HelloWorld.vue` fetch `/api/config` 顯示（敏感值遮罩）。
+
+如不需要 Vault，在 values.yaml 設定 `vault.enabled: false`。
+
+---
+
+## Tailscale 網路存取（可選）
+
+OrbStack NodePort 預設只綁定 `localhost`。若需要同一 Tailscale VPN 的裝置存取，用 `socat` 轉發：
+
+```bash
 brew install socat
 
-# 啟動轉發（100.81.101.47 替換成你的 Tailscale IP）
-nohup socat TCP-LISTEN:30080,bind=100.81.101.47,fork,reuseaddr TCP:localhost:30080 \
+# 查詢 Tailscale IP
+tailscale ip -4
+
+# 轉發 dev（替換成你的 Tailscale IP）
+nohup socat TCP-LISTEN:30080,bind=<TAILSCALE_IP>,fork,reuseaddr TCP:localhost:30080 \
   > /tmp/socat-30080.log 2>&1 &
+
+# 轉發 prd
+nohup socat TCP-LISTEN:30081,bind=<TAILSCALE_IP>,fork,reuseaddr TCP:localhost:30081 \
+  > /tmp/socat-30081.log 2>&1 &
 ```
 
-查詢自己的 Tailscale IP：`tailscale ip -4`
-
-啟動後，同 VPN 裝置可透過 `http://<tailscale-ip>:30080` 存取。
-
-> **注意：** `socat` 是暫時性的，重開機後需要重新執行。如需永久化，設定成 launchd service。
-
-## GitOps 自動部署流程
-
-日常開發只需要：
-
-```bash
-# 修改 app/src/ 下的 Vue 原始碼
-git add . && git commit -m "feat: ..."
-git push
-```
-
-GitHub Actions 會自動：
-1. `npm ci && npm run build`（Vite 打包）
-2. `docker build & push` → GHCR（tag 為 git SHA）
-3. 更新 `infra/helm/myapp/values.yaml` 的 `image.tag`
-4. git commit & push
-
-Argo CD 偵測到 `values.yaml` 變更後，自動 `helm upgrade`，約 2-3 分鐘完成部署。
-
-### 透過 PR 部署
-
-實際開發建議走 PR 流程，讓 CI 在 merge 後才觸發：
-
-```bash
-# 建立 feature branch
-git checkout -b feat/my-feature
-
-# 開發、commit...
-git push -u origin feat/my-feature
-
-# 建立 PR（CLI 方式）
-gh pr create --title "feat: ..." --body "..."
-```
-
-merge PR 後，`main` branch 觸發 CI → 自動部署。CI workflow 只在 `app/**` 有變更時才執行（見 `.github/workflows/ci.yml` 的 `paths` 設定）。
-
-## GitHub Actions 一次性權限設定
-
-第一次讓 GitHub Actions 推 image 到 GHCR，需要設定兩個地方：
-
-### 1. 開啟 Repo 的 Actions 讀寫權限
-
-預設 `GITHUB_TOKEN` 只有讀取權限，推 package 會被拒絕。
-
-前往 **Settings → Actions → General → Workflow permissions**，選擇 **Read and write permissions** 後儲存。
-
-### 2. 授權 Repo 存取已存在的 GHCR Package
-
-如果 package（`ghcr.io/<user>/<repo>/myapp`）曾經用 Personal Access Token（PAT）手動推過，它不會自動允許 `GITHUB_TOKEN` 寫入。
-
-前往：
-```
-https://github.com/users/<your-username>/packages/container/<repo>%2Fmyapp/settings
-```
-
-在 **Manage Actions access** 區塊，點 **Add Repository** → 選目標 repo → 設為 **Write**。
-
-> 這個步驟只需要做一次。之後 CI 推 image 都會使用 `GITHUB_TOKEN`，不需要 PAT。
-
-## 本機 Build（不走 GHCR）
-
-開發時若想快速測試，可直接 build 本機 image：
-
-```bash
-cd app
-docker build -t myapp:local .
-
-helm upgrade myapp ./infra/helm/myapp -n myapp \
-  --set image.repository=myapp \
-  --set image.tag=local \
-  --set image.pullPolicy=Never \
-  --set vault.enabled=false
-```
-
-> 注意：本機 build 後如果 Argo CD auto-sync 仍開啟，它會把 image 打回 GHCR 版本。暫停 sync：
-> ```bash
-> kubectl patch application myapp -n argocd \
->   -p '{"spec":{"syncPolicy":{"automated":null}}}' --type merge
-> ```
+> 重開機後需要重新執行。如需永久化，設定成 launchd service。
