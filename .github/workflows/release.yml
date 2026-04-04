@@ -27,6 +27,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: main
+          fetch-depth: 0
 
       - name: Install tools
         run: |
@@ -46,7 +47,9 @@ jobs:
       - name: Read dev image SHA and promote
         run: |
           RELEASE_TAG="${{ github.event.inputs.tag || github.ref_name }}"
-          DEV_TAG=$(yq '.image.tag' infra/helm/myapp/values-dev.yaml)
+          # Read values-dev.yaml from the release tag commit (not current main HEAD)
+          # This prevents accidentally promoting a newer SHA that was deployed after the release tag was created
+          DEV_TAG=$(git show ${RELEASE_TAG}:infra/helm/myapp/values-dev.yaml | yq '.image.tag')
           echo "Promoting dev image: $DEV_TAG → $RELEASE_TAG"
 
           IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
@@ -61,4 +64,5 @@ jobs:
           git config user.name "GitHub Actions"
           git add infra/helm/myapp/values-prd.yaml
           git commit -m "chore(prd): release $RELEASE_TAG"
+          git pull --rebase origin main
           git push origin main
