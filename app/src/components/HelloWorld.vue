@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 
 const buildTime = __BUILD_TIME__
+const appVersion = __APP_VERSION__
 
 interface VaultConfig {
   API_KEY: string
@@ -89,7 +90,7 @@ function maskSecret(value: string): string {
       </div>
     </div>
 
-    <p class="build-info">Build time: {{ buildTime }}</p>
+    <p class="build-info">Version: v{{ appVersion }} | Build time: {{ buildTime }}</p>
   </div>
 </template>
 
