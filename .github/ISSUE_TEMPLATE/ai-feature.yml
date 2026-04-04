@@ -1,0 +1,54 @@
+name: "AI 功能需求"
+description: "請 AI 自動實作新功能，填寫後加上 ai-task label 即可觸發"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        填寫完成後，對此 issue 加上 **`ai-task`** label，Claude 會自動實作並開 PR。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 功能描述
+      description: 請詳細描述你希望實作的功能，越具體越好
+      placeholder: |
+        例如：在 HelloWorld.vue 的頁面頂部加上一個 badge，顯示目前環境（dev / prd）。
+        badge 樣式：綠色背景白字，讀取 import.meta.env.MODE 取得環境名稱。
+    validations:
+      required: true
+
+  - type: textarea
+    id: files
+    attributes:
+      label: 預期修改的檔案
+      description: 如果你知道需要改哪些檔案，請列出（選填）
+      placeholder: |
+        app/src/components/HelloWorld.vue
+        app/src/assets/main.css
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 驗收條件
+      description: PR 完成後如何驗證功能正確（選填）
+      placeholder: |
+        - npm run build 成功
+        - 頁面頂部顯示環境 badge
+        - dev 環境顯示綠色，prd 顯示藍色
+    validations:
+      required: false
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 影響範圍
+      options:
+        - "前端 (app/)"
+        - "文件 (docs/)"
+        - "基礎設施 (infra/)"
+        - "其他"
+    validations:
+      required: true

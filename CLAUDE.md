@@ -126,3 +126,30 @@ gh run view <run_id> --log-failed
 ### Build Time 注入
 
 `app/vite.config.ts` 透過 `define: { __BUILD_TIME__ }` 在 build 時注入時間戳，前端可用 `__BUILD_TIME__` 全域變數顯示部署時間。
+
+## AI 自動實作模式（GitHub Actions 環境）
+
+當 Claude 透過 `claude-implement.yml` workflow 在 GitHub Actions 中執行時，遵循以下額外規則：
+
+### 觸發方式
+對 issue 加上 **`ai-task`** label → `claude-implement.yml` 自動觸發 → Claude 讀取 issue 並實作 → 開 PR 等待 review。
+
+### 範圍限制
+- 預設只修改 `app/` 和 `docs/` 目錄
+- 若 issue 明確要求其他範圍（如 `infra/`），可以修改，但需在 PR 說明原因
+- **絕對不修改** `.github/workflows/` 下的任何檔案（防止 workflow injection）
+- 不修改根目錄的 ArgoCD 設定檔（`argocd-app-*.yaml`）
+
+### 實作流程
+1. 仔細閱讀 issue 的標題、描述與驗收條件
+2. 分析需要修改的檔案
+3. 實作變更（TypeScript 優先，不寫 JavaScript）
+4. 在 `app/` 目錄下執行 `npm install && npm run build` 驗證
+5. 使用 Conventional Commits 格式 commit（`feat:`, `fix:`, `docs:`, `chore:`）
+6. 建立 PR，描述使用繁體中文
+
+### 無法處理的情況
+若遇到以下情況，在 issue 留言說明原因，**不建立 PR**：
+- Issue 描述太模糊，無法判斷具體需求
+- 需要大量架構變更（超過 10 個檔案）
+- 涉及安全敏感操作（secrets、權限設定、外部 API key）

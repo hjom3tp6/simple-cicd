@@ -1,0 +1,51 @@
+name: "AI Bug 修復"
+description: "請 AI 自動修復 bug，填寫後加上 ai-task label 即可觸發"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        填寫完成後，對此 issue 加上 **`ai-task`** label，Claude 會自動修復並開 PR。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug 描述
+      description: 請描述發生了什麼問題
+      placeholder: |
+        例如：HelloWorld.vue 在 build 後顯示 __BUILD_TIME__ 而不是實際的時間戳記
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 重現步驟
+      description: 如何重現這個 bug（選填）
+      placeholder: |
+        1. 執行 npm run build
+        2. 開啟 dist/index.html
+        3. 觀察頁面上的時間顯示
+    validations:
+      required: false
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 預期行為
+      description: 正確的行為應該是什麼（選填）
+      placeholder: |
+        應該顯示 build 時的實際 ISO 時間戳記，例如 2024-01-15T10:30:00.000Z
+    validations:
+      required: false
+
+  - type: textarea
+    id: files
+    attributes:
+      label: 可能有問題的檔案
+      description: 如果你知道問題出在哪個檔案（選填）
+      placeholder: |
+        app/vite.config.ts
+        app/src/components/HelloWorld.vue
+    validations:
+      required: false
