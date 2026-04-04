@@ -3,6 +3,9 @@ image:
   repository: ghcr.io/hjom3tp6/simple-cicd/myapp
   pullPolicy: IfNotPresent
 
+imagePullSecrets:
+  - name: ghcr-secret
+
 replicaCount: 1
 
 service:
