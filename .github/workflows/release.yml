@@ -3,7 +3,7 @@ name: Release - Promote to Prd
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'app-v*.*.*'
 
 env:
   REGISTRY: ghcr.io
