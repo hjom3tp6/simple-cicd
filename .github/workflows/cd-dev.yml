@@ -71,3 +71,19 @@ jobs:
           git commit -m "chore(dev): deploy ${{ github.sha }}"
           git pull --rebase origin main
           git push
+
+      - name: Verify deployment (requires KUBECONFIG_B64 secret)
+        env:
+          KUBECONFIG_DATA: ${{ secrets.KUBECONFIG_B64 }}
+        run: |
+          if [ -z "$KUBECONFIG_DATA" ]; then
+            echo "⚠️  KUBECONFIG_B64 secret not configured — skipping deployment verification"
+            echo "To enable: add a base64-encoded kubeconfig to repository secrets as KUBECONFIG_B64"
+            exit 0
+          fi
+          echo "$KUBECONFIG_DATA" | base64 -d > /tmp/kubeconfig
+          export KUBECONFIG=/tmp/kubeconfig
+          echo "Waiting for deployment myapp-dev to become available..."
+          kubectl wait --for=condition=available deployment/myapp-dev \
+            -n dev --timeout=120s
+          echo "✅ Deployment verified: myapp-dev is available in dev namespace"

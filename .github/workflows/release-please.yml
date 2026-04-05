@@ -3,6 +3,8 @@ name: Release Please
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'infra/helm/**'
 
 permissions:
   contents: write
